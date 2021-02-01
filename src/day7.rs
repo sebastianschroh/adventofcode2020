@@ -15,11 +15,11 @@ impl BagInfo {
 
 fn main() {
 
-    let filename = "../files/day7-1.txt";
+    let filename = "../files/day7.txt";
     let contents = read_puzzle(filename);
     let mut bags = create_bags_map(contents);
 
-    println!("{}", find_outer_bag_sum("shiny gold".to_string(), bags));
+    println!("{}", find_amount_of_bags(&mut "shiny gold".to_string(), &mut bags) - 1);
 }
 
 fn read_puzzle(input: &str) -> Vec<String> {
@@ -59,27 +59,42 @@ fn create_bags_map(contents: Vec<String>) -> HashMap<String, Vec<BagInfo>>{
     return bags
 }
 
-fn find_outer_bag_sum(color: String, map: HashMap<String, Vec<BagInfo>>) -> i32 {
-    let mut sum = 0;
-    let color_rec = color;
+fn find_outer_bag_sum(desired_color: &String, map: &HashMap<String, Vec<BagInfo>>) -> i32 {
+    let mut correct_bags: Vec<String> = Vec::new();
     for (bag_color, bags) in map {
-        find_outer_bag_recursion(color_rec, bags, map);
+        find_outer_bag_recursion(desired_color, bag_color, bags, map, &mut correct_bags);
     }
-    return sum
+    correct_bags.dedup();
+    println!("{:?}", correct_bags);
+    return correct_bags.len() as i32
 }
 
-fn find_outer_bag_recursion(bag_color: String, bags: Vec<BagInfo>, map: HashMap<String, Vec<BagInfo>>) -> bool {
+fn find_outer_bag_recursion(desired_color: &String, bag_color: &String, bags: &Vec<BagInfo>, map: &HashMap<String, Vec<BagInfo>>, correct_bags: &mut Vec<String>){
     if bags.is_empty() {
-        return false;
+        
+        return;
     }
-    if bags.iter().any(|b| b.color == bag_color) {
-        return true; 
+    if bags.iter().any(|b| b.color == *desired_color) {
+        correct_bags.push(bag_color.to_string());
+        return;
     }
     else {
         for bag in bags {
             let rec_bags = map.get(&bag.color).unwrap();
-            return find_outer_bag_recursion(bag.color, rec_bags.to_vec(), map);
+            find_outer_bag_recursion(desired_color, bag_color, rec_bags , map, correct_bags);
         }
-        return false;
     }
+}
+
+fn find_amount_of_bags(desired_color: &String, map: &HashMap<String, Vec<BagInfo>>) -> i32 {
+    let mut sum = 1;
+    let inner_bags = map.get(desired_color).unwrap();
+    println!("{}", desired_color);
+    println!("{:?}", inner_bags);
+    for bag in inner_bags{
+        sum += bag.amount * find_amount_of_bags(&bag.color, map);
+    }
+
+    return sum
+
 }
