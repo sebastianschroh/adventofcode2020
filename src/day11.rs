@@ -1,13 +1,19 @@
 use std::fs;
+use std::time;
 
 
 fn main() {
-
+    let now = time::Instant::now();
     let filename = "../files/day11.txt";
     let mut contents = read_puzzle(filename);
+    println!("file read in {} ms", now.elapsed().as_millis());
     let mut contents2 = contents.clone();
+    let now = time::Instant::now();
     find_occupied_seats_pt1(&mut contents);
+    println!("part 1 in {} ms", now.elapsed().as_millis());
+    let now = time::Instant::now();
     find_occupied_seats_pt2(&mut contents2);
+    println!("file read in {} ms", now.elapsed().as_millis());
 }
 
 fn read_puzzle(input: &str) -> Vec<Vec<char>> {
@@ -21,50 +27,54 @@ fn read_puzzle(input: &str) -> Vec<Vec<char>> {
 fn find_occupied_seats_pt1(contents: &mut Vec<Vec<char>>){
     let mut copy = contents.clone();
 
-    let l = 0;
-    let r = 1;
-    let t = 2;
-    let tl = 3;
-    let tr = 4;
-    let b = 5;
-    let bl = 6;
-    let br = 7;
-
     loop {
         for index in 0..contents.len(){
             for jndex in 0..contents[index].len(){
-                let mut directions = ['.'; 8];
+                let mut directions = Vec::new();
+                if contents[index][jndex] == '.' {
+                    continue;
+                }
+
+                // check if outside left most column
                 if jndex != 0 {
-                    directions[l] = *contents[index].get(jndex - 1).unwrap();
+                    directions.push(contents[index][jndex - 1]);
                 }
+                // check if outside right most column
+                if jndex != contents[index].len() - 1 {
+                    directions.push(contents[index][jndex + 1]);
+                }
+                // check if outside top most row
                 if index != 0 {
-                    directions[t] = contents[index - 1][jndex];
-                    directions[tr] = *contents[index - 1].get(jndex + 1).unwrap_or(&'.');
+                    directions.push(contents[index - 1][jndex]);
+                    if jndex != contents[index].len() - 1 {
+                        directions.push(contents[index -1][jndex + 1]);
+                    }
                     if jndex != 0 {
-                        directions[tl] = *contents[index - 1].get(jndex - 1).unwrap();
+                        directions.push(contents[index - 1][jndex - 1]);
                     }
                 }
+                // check if outside bottom most row
                 if index != contents.len() - 1{
-                    directions[b] = contents[index + 1][jndex];
-                    directions[br] = *contents[index + 1].get(jndex + 1).unwrap_or(&'.');
+                    directions.push(contents[index + 1][jndex]);
+                    if jndex != contents[index].len() - 1 {
+                        directions.push(contents[index + 1][jndex + 1]);
+                    }
                     if jndex != 0 {
-                        directions[bl] = *contents[index + 1].get(jndex - 1).unwrap();;
+                        directions.push(contents[index + 1][jndex - 1]);
                     }
                 }
 
-                directions[r] = *contents[index].get(jndex + 1).unwrap_or(&'.');
 
-
-                if contents[index][jndex] == 'L' && not_adjacent(&directions){
+                if contents[index][jndex] == 'L' && not_adjacent(&directions, '#'){
                     copy[index][jndex] = '#';
                 }
-                else if contents[index][jndex] == '#' && four_or_more_adjacent(&directions){
+                else if contents[index][jndex] == '#' && num_of_adjacent(&directions, 4, '#'){
                     copy[index][jndex] = 'L';
                 }
             }
         }
 
-        if matrix_is_equal(&contents, &copy) {
+        if *contents == copy {
             break;
         }
         *contents = copy.clone();
@@ -76,50 +86,38 @@ fn find_occupied_seats_pt1(contents: &mut Vec<Vec<char>>){
 fn find_occupied_seats_pt2(contents: &mut Vec<Vec<char>>){
     let mut copy = contents.clone();
 
-    let l = 0;
-    let r = 1;
-    let t = 2;
-    let tl = 3;
-    let tr = 4;
-    let b = 5;
-    let bl = 6;
-    let br = 7;
-
     loop {
         for index in 0..contents.len(){
             for jndex in 0..contents[index].len(){
-                let mut directions = ['.'; 8];
-                if jndex != 0 {
-                    directions[l] = *contents[index].get(jndex - 1).unwrap();
-                }
-                if index != 0 {
-                    directions[t] = contents[index - 1][jndex];
-                    directions[tr] = *contents[index - 1].get(jndex + 1).unwrap_or(&'.');
-                    if jndex != 0 {
-                        directions[tl] = *contents[index - 1].get(jndex - 1).unwrap();
-                    }
-                }
-                if index != contents.len() - 1{
-                    directions[b] = contents[index + 1][jndex];
-                    directions[br] = *contents[index + 1].get(jndex + 1).unwrap_or(&'.');
-                    if jndex != 0 {
-                        directions[bl] = *contents[index + 1].get(jndex - 1).unwrap();;
-                    }
-                }
+                let mut directions = Vec::new();
 
-                directions[r] = *contents[index].get(jndex + 1).unwrap_or(&'.');
+                // check right
+                check_directions(&contents, &mut directions, index as isize, jndex as isize, 0, 1);
+                // check left
+                check_directions(&contents, &mut directions, index as isize, jndex as isize, 0, -1);
+                // check up
+                check_directions(&contents, &mut directions, index as isize, jndex as isize, -1, 0);
+                // check down
+                check_directions(&contents, &mut directions, index as isize, jndex as isize, 1, 0);
+                // check up and left
+                check_directions(&contents, &mut directions, index as isize, jndex as isize, -1, -1);
+                // check up and right
+                check_directions(&contents, &mut directions, index as isize, jndex as isize, -1, 1);
+                // check down and left
+                check_directions(&contents, &mut directions, index as isize, jndex as isize, 1, -1);
+                // check down and right
+                check_directions(&contents, &mut directions, index as isize, jndex as isize, 1, 1);
 
 
-                if contents[index][jndex] == 'L' && not_adjacent(&directions){
+                if contents[index][jndex] == 'L' && not_adjacent(&directions, '#'){
                     copy[index][jndex] = '#';
                 }
-                else if contents[index][jndex] == '#' && four_or_more_adjacent(&directions){
+                else if contents[index][jndex] == '#' && num_of_adjacent(&directions, 5, '#'){
                     copy[index][jndex] = 'L';
                 }
             }
         }
-
-        if matrix_is_equal(&contents, &copy) {
+        if *contents == copy {
             break;
         }
         *contents = copy.clone();
@@ -128,39 +126,41 @@ fn find_occupied_seats_pt2(contents: &mut Vec<Vec<char>>){
     println!("{}", amount_of_occupied_seats(&contents));
 }
 
-fn in_grid(row_size: usize, col_size: usize, row_index: isize, col_index: isize) -> bool{
-    if row_index < 0 || col_index < 0{
-        false
+fn check_directions(mat: &Vec<Vec<char>>, directions: &mut Vec<char>, x: isize, y: isize, dx:  isize, dy:  isize){
+    let row_length = (mat.len() - 1) as isize;
+    let col_length = (mat[0].len() - 1) as isize;
+    let mut x = x;
+    let mut y = y;
+    loop {
+        if x + dx < 0 || y + dy < 0 || x + dx > row_length || y + dy > col_length {
+            break;
+        }
+        let index = (x + dx) as usize;
+        let jndex = (y + dy) as usize;
+        if mat[index][jndex] == '#' || mat[index][jndex] == 'L' {
+            directions.push(mat[index][jndex]);
+            break;
+        }
+        x = x + dx; 
+        y = y + dy;
     }
-    let row_index = row_index as usize;
-    let col_index = col_index as usize;
-    if row_index > row_size || col_index > col_size {
-        false
-    }
-    true
-
 }
 
-fn not_adjacent(directions: &[char]) -> bool{
-    !directions.contains(&'#')
+fn not_adjacent(directions: &[char], c: char) -> bool{
+    !directions.contains(&c)
 }
 
-fn four_or_more_adjacent(directions: &[char]) -> bool{
+fn num_of_adjacent(directions: &[char], threshold: usize, c: char) -> bool{
     let mut sum = 0;
     for d in directions.iter(){
-        if *d == '#' {
+        if *d == c {
             sum += 1;
         }
     }
-    sum >= 4
+    sum >= threshold
 }
 
-fn matrix_is_equal(mat1: &Vec<Vec<char>>, mat2: &Vec<Vec<char>>) -> bool {
-    mat1.iter()
-    .zip(mat2)
-    .all(|(a,b)| a.iter().zip(b).all(|(x,y)| *x == *y))
-}
 
 fn amount_of_occupied_seats(mat1: &Vec<Vec<char>>) -> usize {
-    mat1.iter().map(|v| v.iter().filter(|&c| *c == '#').count()).sum()
+    mat1.iter().flatten().filter(|&&c| c == '#').count()
 }
