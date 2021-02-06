@@ -50,5 +50,9 @@ path = "src/day10.rs"
 name = "day11"
 path = "src/day11.rs"
 
+[[bin]]
+name = "day12"
+path = "src/day12.rs"
+
 [dependencies]
 named_tuple = { version = "0.1", features = ["serde"] }
