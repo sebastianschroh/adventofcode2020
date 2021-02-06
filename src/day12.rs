@@ -137,7 +137,7 @@ impl Ferry {
 
 fn main() {
     let now = time::Instant::now();
-    let filename = "../files/day12.txt";
+    let filename = "./files/day12.txt";
     let contents = read_puzzle(filename);
     let directions = get_directions(contents);
 
